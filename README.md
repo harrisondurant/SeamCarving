@@ -10,4 +10,3 @@ Requirements:
 * scipy
 * cv2
 * PIL
-
