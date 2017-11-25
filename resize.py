@@ -6,29 +6,33 @@ import argparse
 import cv2
 
 # Ask if user wants to continue resizing image
-def query_continue(string='Continue? (y/n): ', target_answer='y'):
-    return target_answer == input(string).lower().replace(' ', '')[0]
+def query_continue(string='Enter \'y\' to continue, or any other key to quit: ', 
+                    target_answer='y'):
+    user_input = input(string).lower()
+    if len(user_input) == 0: return False
+    return target_answer == user_input.replace(' ', '')[0]
 
 # Ask user for new image size for resizing
-def query_image_size(curr_size, min_h=10, min_w=10):
+def query_image_size(curr_size, max_w, max_h, min_h=10, min_w=10):
     h,w = curr_size
     h_,w_ = min_h,min_w
-    h_str = 'Current height = {}. Please enter new image height: '.format(h)
-    w_str = 'Current width = {}. Please enter new image width: '.format(w)
+    h_str = 'Current height = %d. Please enter new image height: ' % h
+    w_str = 'Current width = %d. Please enter new image width: ' % w
     while True:
         h_ = input(h_str)
-        if h_.isdigit() and int(h_) > min_h: break
-        print('new height must be a number greater than {}'.format(min_h))
+        if h_.isdigit() and int(h_) > min_h and int(h_) < max_h: break
+        print('new height must be a number > %d and < %d' % (min_h, max_h))
     while True:
         w_ = input(w_str)
-        if w_.isdigit() and int(w_) > min_w: break
-        print('new width must be a number greater than {}'.format(min_w))
+        if w_.isdigit() and int(w_) > min_w and int(w_) < max_w: break
+        print('new width must be a number > %d and < %d' % (min_w, max_w))
     return int(h_), int(w_)
 
 def main(args):
     # Create SeamCarver
-    sc = SeamCarver(args.image, use_forward_energy=args.forward)
-    sc.p.turnOff()
+    image = load_and_process_image(args.image)
+    sc = SeamCarver(image, args.image, verbose=True, 
+                    use_forward_energy=args.forward)
 
     # default 1 seam at a time
     nw, nh = 0, 0
@@ -38,11 +42,17 @@ def main(args):
     half = int(spacing / 2)
 
     # create mat 
-    mat = np.ones((2*(h+spacing), w+spacing, d), dtype=sc.image.dtype) * 255
+    #mat = np.ones((2*(h+spacing), w+spacing, d), dtype=sc.image.dtype) * 255
+    #mat[half:h+half,half:w+half,:] = sc.image
+    #mat[spacing+half+h:spacing+half+2*h,half:w+half,:] = sc.original
+    mat = make_image_grid([sc.image, sc.original])
 
     # create cv2 named window to display images
-    window_name = 'Seam Carving - {}'.format(sc.imagepath)
+    window_name = 'Seam Carving - %s' % sc.image_name
     cv2.namedWindow(window_name)
+
+    cv2.imshow(window_name, mat)
+    cv2.waitKey(1)
 
     # while user has not quit, or image is too small
     while sc.image.shape[1] > 1:
@@ -52,19 +62,19 @@ def main(args):
         if args.continuous: 
             nh, nw = h, sc.image.shape[1] - 1
         else:
-            nh, nw = query_image_size(sc.image.shape[:2])
+            nh, nw = query_image_size(sc.image.shape[:2], 2*w, 2*h)
 
         # Resize window in case seams are inserted
         mat = np.ones((2*(max(h,nh)+spacing),
                     max(w,nw)+spacing, d), dtype=sc.image.dtype) * 255
 
         # Perform seam carving/inserting operations
-        sc.resize((nh, nw, d))
+        sc.resize(nh, nw)
 
         # Display results on window
-        mat[half:nh+half,half:nw+half,:] = sc.image
-        mat[spacing+half+h:spacing+half+2*h,half:w+half,:] = sc.original
-
+        #mat[half:nh+half,half:nw+half,:] = sc.image
+        #mat[spacing+half+nh:spacing+half+nh+h,half:w+half,:] = sc.original
+        mat = make_image_grid([sc.original, sc.image])
         cv2.imshow(window_name, mat)
 
         if cv2.waitKey(1) == ord('q'): break

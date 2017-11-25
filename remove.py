@@ -85,8 +85,12 @@ def main(args):
     global mask
 
     # Create SeamCarver
-    sc = SeamCarver(args.image, use_forward_energy=args.forward)
-
+    image = load_and_process_image(args.image, 
+                                    max_height=300, 
+                                    max_width=500)
+    sc = SeamCarver(image, args.image, verbose=True,
+                    use_forward_energy=args.forward)
+                
     # create cv2 named window to display images
     h,w,d = sc.image.shape
     text_area_height = 50
@@ -104,7 +108,7 @@ def main(args):
     mat[h:,:,:] = text_area
 
     # create window
-    window_name = 'Object removal - {}'.format(sc.imagepath)
+    window_name = 'Object removal - %s' % sc.image_name
     cv2.namedWindow(window_name)
 
     # set callback for drawing
@@ -113,9 +117,7 @@ def main(args):
     # while user has not drawn mask, display image, wait...
     while True:
         cv2.imshow(window_name, mat)
-        if cv2.waitKey(1) == 13: # 'Enter' key
-            print('Object mask created.')
-            break
+        if cv2.waitKey(1) == 13: break # 'Enter' key
 
     # no need to draw anymore, reset callback
     cv2.setMouseCallback(window_name, nothing)
@@ -130,7 +132,7 @@ def main(args):
     cv2.waitKey(1)
 
     # remove object
-    sc.set_image(orig)
+    sc.reset_image(orig)
     mask = mask[:h,:]
     sc.remove_object(mask)
 

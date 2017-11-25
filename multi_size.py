@@ -10,7 +10,8 @@ from PIL import ImageTk
 from tkinter import *
 
 class ResizeableImage(Frame):
-    def __init__(self, parent, seam_carver, direction):
+    def __init__(self, parent, seam_carver,
+                 direction='horizontal'):
         Frame.__init__(self, parent)
         
         self.parent = parent
@@ -19,9 +20,7 @@ class ResizeableImage(Frame):
 
         self.seam_carver = seam_carver
 
-        self.h = self.seam_carver.image.shape[0]
-        self.w = self.seam_carver.image.shape[1]
-        self.d = self.seam_carver.image.shape[2]
+        self.h, self.w, self.d = self.seam_carver.image.shape
 
         self.image = ImageTk.PhotoImage(
             IMG.fromarray(self.seam_carver.image))
@@ -55,21 +54,9 @@ class ResizeableImage(Frame):
         self.parent.wm_maxsize(width=max_w, height=max_h)
 
     def on_resize(self, event):
-        size = (event.width, event.height)
-        diff = self.w - event.width
-
-        if diff > 0:
-            bmap = self.seam_carver.bmap_r
-            im = self.seam_carver.image[np.where(bmap >= diff)].reshape(self.h, event.width, self.d)
-            resized = IMG.fromarray(im)
-            self.image = ImageTk.PhotoImage(resized)
-        else:
-            k = -diff
-            nw = self.w + k - 1
-            bmap = self.seam_carver.bmap_i
-            im = self.seam_carver.I[np.where(bmap > diff)].reshape(self.h, nw, self.d)
-            resized = IMG.fromarray(im)
-            self.image = ImageTk.PhotoImage(resized)
+        self.seam_carver.fast_resize_width(event.width)
+        resized = IMG.fromarray(self.seam_carver.image)
+        self.image = ImageTk.PhotoImage(resized)
 
         self.display.delete("IMG")
         self.display.create_image(0, 0, image=self.image, anchor=NW, tags="IMG")
@@ -79,25 +66,29 @@ def main(args):
     root = Tk()
     root.title(args.image)
 
-    # create seamcarver
-    sc = SeamCarver(args.image, use_forward_energy=args.forward)
-    sc.process()
+    # create seamcarver, run pre-processing
+    image = load_and_process_image(args.image, swap_channels=True)
+    sc = SeamCarver(image, args.image, verbose=True,
+                    use_forward_energy=args.forward)
+    sc.pre_process()
 
     # Create image frame
-    frame = ResizeableImage(root, sc, args.direction)
+    frame = ResizeableImage(root, sc)
 
+    # set frame size
     root.geometry('{}x{}'.format(frame.w, frame.h))
 
+    # run gui
     root.mainloop()
         
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('-i', '--image', required=True,
                 help='path to input image file')
-    ap.add_argument('-d', '--direction', type=str,
-                default='horizontal', help='seam removal (resize) direction')
     ap.add_argument('-f', dest='forward', action='store_true', 
                   default=False, help='use forward energy')
+    # ap.add_argument('-d', '--direction', type=str,
+    #            default='horizontal', help='seam removal (resize) direction')
     args = ap.parse_args()
 
     main(args)
