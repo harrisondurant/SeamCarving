@@ -1,5 +1,7 @@
 # Seam Carving for Content-Aware Image Resizing
 
+![results](https://media.giphy.com/media/l2Rnk5KaxNWhh7Wqk/giphy.gif)
+
 Requirements:
 * argparse
 * tkinter
@@ -8,4 +10,3 @@ Requirements:
 * scipy
 * cv2
 * PIL
-
