@@ -1,6 +1,6 @@
 # Seam Carving for Content-Aware Image Resizing
 
-![](https://media.giphy.com/media/l2Rnk5KaxNWhh7Wqk/giphy.gif)
+![alt text](http://media.giphy.com/media/l2Rnk5KaxNWhh7Wqk/giphy.gif)
 
 Requirements:
 * argparse
