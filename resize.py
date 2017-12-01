@@ -8,9 +8,9 @@ import cv2
 # Ask if user wants to continue resizing image
 def query_continue(string='Enter \'y\' to continue, or any other key to quit: ', 
                     target_answer='y'):
-    user_input = input(string).lower()
+    user_input = input(string).lower().replace(' ', '')
     if len(user_input) == 0: return False
-    return target_answer == user_input.replace(' ', '')[0]
+    return target_answer == user_input[0]
 
 # Ask user for new image size for resizing
 def query_image_size(curr_size, max_w, max_h, min_h=10, min_w=10):
@@ -31,7 +31,9 @@ def query_image_size(curr_size, max_w, max_h, min_h=10, min_w=10):
 def main(args):
     # Create SeamCarver
     image = load_and_process_image(args.image)
-    sc = SeamCarver(image, args.image, verbose=True, 
+
+    verbose = not args.continuous
+    sc = SeamCarver(image, args.image, verbose=verbose, 
                     use_forward_energy=args.forward)
 
     # default 1 seam at a time
@@ -41,10 +43,6 @@ def main(args):
     spacing = 16
     half = int(spacing / 2)
 
-    # create mat 
-    #mat = np.ones((2*(h+spacing), w+spacing, d), dtype=sc.image.dtype) * 255
-    #mat[half:h+half,half:w+half,:] = sc.image
-    #mat[spacing+half+h:spacing+half+2*h,half:w+half,:] = sc.original
     mat = make_image_grid([sc.image, sc.original])
 
     # create cv2 named window to display images
@@ -54,7 +52,7 @@ def main(args):
     cv2.imshow(window_name, mat)
     cv2.waitKey(1)
 
-    # while user has not quit, or image is too small
+    # while image is not too small
     while sc.image.shape[1] > 1:
 
         # if continuous mode, remove one vertical seam at a time.
@@ -72,12 +70,11 @@ def main(args):
         sc.resize(nh, nw)
 
         # Display results on window
-        #mat[half:nh+half,half:nw+half,:] = sc.image
-        #mat[spacing+half+nh:spacing+half+nh+h,half:w+half,:] = sc.original
         mat = make_image_grid([sc.original, sc.image])
         cv2.imshow(window_name, mat)
-
         if cv2.waitKey(1) == ord('q'): break
+
+        # ask if user wants to continue
         if not args.continuous and not query_continue(): break
 
     cv2.destroyAllWindows()

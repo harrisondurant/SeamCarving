@@ -55,6 +55,30 @@ class SeamCarver(object):
                                     n_seams=n_seams,
                                     use_FE=self.use_FE)
 
+    # content amplification
+    def content_amplify(self, percent):
+        percent = percent / 100.0
+        n_seams_w = int(percent * self.image.shape[1])
+        n_seams_h = int(percent * self.image.shape[0])
+        nw = self.image.shape[1] + n_seams_w
+        nh = self.image.shape[0] + n_seams_h
+        if percent > 0:
+            s_print_('Amplifying image content by factor of %.2f' % percent)
+            self.image = scale(self.image, (nw, nh))
+            s_print_('Restoring image to original size...')
+            self.image = transpose(self.image)
+            self.carve_seams(n_seams=n_seams_h)
+            self.image = transpose(self.image)
+            self.carve_seams(n_seams=n_seams_w)
+        elif percent < 0:
+            s_print_('Reducing image content by factor of %.2f' % abs(percent))
+            self.image = scale(self.image, (nw, nh))
+            s_print_('Restoring image to original size...')
+            self.image = transpose(self.image)
+            self.insert_seams(n_seams=abs(n_seams_h))
+            self.image = transpose(self.image)
+            self.insert_seams(n_seams=abs(n_seams_w))
+
     # resize an image
     def resize(self, new_height, new_width):
         h,w = new_height, new_width

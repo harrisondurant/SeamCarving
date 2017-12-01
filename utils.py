@@ -512,8 +512,8 @@ def make_image_grid(images, spacing=16):
     images: a list of images with the same type and dimensions (2D or 3D)
     """
     n_images = len(images)
-    r = int(np.sqrt(n_images))
-    c = int(np.ceil(n_images / r))
+    c = int(np.sqrt(n_images))
+    r = int(np.ceil(n_images / c))
     mxh = max([img.shape[0] for img in images]) + spacing
     mxw = max([img.shape[1] for img in images]) + spacing
 
